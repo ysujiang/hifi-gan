@@ -1,4 +1,7 @@
 {
+    "input_training_file":"LJSpeech-1.1/training.txt",
+    "input_validation_file":"LJSpeech-1.1/validation.txt",
+    "input_wavs_dir":"LJSpeech-1.1/wavs",
     "resblock": "1",
     "num_gpus": 0,
     "batch_size": 16,
@@ -26,6 +29,34 @@
     "fmin": 0,
     "fmax": 8000,
     "fmax_for_loss": null,
+
+    "audio":{
+        "num_mels": 80,
+        "fft_size": 1024,
+        "sample_rate": 22050,
+        "win_length": 1024,
+        "hop_length": 256,
+        "frame_length_ms": null,
+        "frame_shift_ms": null,
+        "preemphasis": 0.98,
+        "min_level_db": -100,
+        "ref_level_db": 20,
+        "power": 1.5,
+        "griffin_lim_iters": 60,
+        "stft_pad_mode": "constant",
+        "signal_norm": true,
+        "symmetric_norm": true,
+        "max_norm": 4.0,
+        "clip_norm": true,
+        "mel_fmin": 0.0,
+        "mel_fmax": 8000.0,
+        "spec_gain": 20.0,
+        "do_trim_silence": true,
+        "trim_db": 30,
+        "do_sound_norm": true
+    },
+
+
 
     "num_workers": 4,
 
