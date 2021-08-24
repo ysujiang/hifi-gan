@@ -154,7 +154,7 @@ class MelDataset(torch.utils.data.Dataset):
                 mel_loss = mel_loss[:, mel_start:mel_end]
 
                 audio_start = mel_start * self.hop_size
-                audio = audio[audio_start:audio_start + self.hop_size]
+                audio = audio[audio_start:audio_start + self.segment_size]
         else:
             mel = np.load(
                 os.path.join(self.base_mels_path, os.path.splitext(os.path.split(filename)[-1])[0] + '.npy'))
