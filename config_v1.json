@@ -1,7 +1,7 @@
 {
-    "input_training_file":"LJSpeech-1.1/training.txt",
-    "input_validation_file":"LJSpeech-1.1/validation.txt",
-    "input_wavs_dir":"LJSpeech-1.1/wavs",
+    "input_training_file":"/data2/jiangpeipei/TTS_MEL/hifi-gan/hifi-gan/dataset/training.txt",
+    "input_validation_file":"/data2/jiangpeipei/TTS_MEL/hifi-gan/hifi-gan/dataset/validation.txt",
+    "input_wavs_dir":"/data2/jiangpeipei/TTS_MEL/hifi-gan/hifi-gan/dataset/wavs",
     "resblock": "1",
     "num_gpus": 0,
     "batch_size": 16,
