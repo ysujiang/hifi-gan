@@ -146,7 +146,7 @@ class MelDataset(torch.utils.data.Dataset):
 
             if self.split:
                 if audio.size(1) < self.segment_size:
-                    audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(1)), 'constant')
+                    audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(1)+self.hop_size), 'constant')
                 audio = audio.squeeze(0)
                 mel = self.ap.melspectrogram(audio, self.fmax)
                 mel_loss = self.ap.melspectrogram(audio, self.fmax_loss)
