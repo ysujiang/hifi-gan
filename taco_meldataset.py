@@ -185,10 +185,10 @@ class MelDataset(torch.utils.data.Dataset):
         # audio = audio.squeeze(0)
         # mel_loss = self.ap.melspectrogram(audio, self.fmax_loss)
         # print(mel.squeeze().size(),audio.squeeze(0).size(),mel_loss.squeeze().size())
-        print('mel',mel.squeeze().size())
-        print('audio',audio.squeeze(0).size())
-        print('mel_loss',mel_loss.squeeze().size())
-        print(filename)
+        # print('mel',mel.squeeze().size())
+        # print('audio',audio.squeeze(0).size())
+        # print('mel_loss',mel_loss.squeeze().size())
+        # print(filename)
         return (mel.squeeze(), audio.squeeze(0), filename, mel_loss.squeeze())
 
     def __len__(self):
