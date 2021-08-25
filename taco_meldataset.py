@@ -150,16 +150,20 @@ class MelDataset(torch.utils.data.Dataset):
                 audio = audio.squeeze(0)
                 mel = self.ap.melspectrogram(audio, self.fmax)
                 mel_loss = self.ap.melspectrogram(audio, self.fmax_loss)
-                max_mel_start = mel.shape[1] - self.feat_frame_len
+                max_mel_start = mel.shape[1] - self.feat_frame_len-1 #最少33帧
                 mel_start = random.randint(0, max_mel_start)
                 mel_end = mel_start + self.feat_frame_len
                 mel = mel[:, mel_start:mel_end]
                 mel_loss = mel_loss[:, mel_start:mel_end]
                 audio_start = mel_start * self.hop_size
                 audio = audio[audio_start:audio_start + self.segment_size]
-                mel = torch.from_numpy(mel)
-                mel_loss = torch.from_numpy(mel_loss)
 
+            else:
+                mel = self.ap.melspectrogram(audio, self.fmax)
+                mel_loss = self.ap.melspectrogram(audio, self.fmax_loss)
+
+            mel = torch.from_numpy(mel)
+            mel_loss = torch.from_numpy(mel_loss)
         else:
             mel = np.load(
                 os.path.join(self.base_mels_path, os.path.splitext(os.path.split(filename)[-1])[0] + '.npy'))
@@ -178,17 +182,13 @@ class MelDataset(torch.utils.data.Dataset):
                 else:
                     mel = torch.nn.functional.pad(mel, (0, frames_per_seg - mel.size(2)), 'constant')
                     audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(1)), 'constant')
-
+            mel_loss = self.ap.melspectrogram(audio, self.fmax_loss)
         # mel_loss = mel_spectrogram(audio, self.n_fft, self.num_mels,
         #                            self.sampling_rate, self.hop_size, self.win_size, self.fmin, self.fmax_loss,
         #                            center=False)
         # audio = audio.squeeze(0)
         # mel_loss = self.ap.melspectrogram(audio, self.fmax_loss)
-        # print(mel.squeeze().size(),audio.squeeze(0).size(),mel_loss.squeeze().size())
-        # print('mel',mel.squeeze().size())
-        # print('audio',audio.squeeze(0).size())
-        # print('mel_loss',mel_loss.squeeze().size())
-        # print(filename)
+
         return (mel.squeeze(), audio.squeeze(0), filename, mel_loss.squeeze())
 
     def __len__(self):
