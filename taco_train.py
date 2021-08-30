@@ -23,7 +23,7 @@ from taco_utils.audio import AudioProcessor
 torch.backends.cudnn.benchmark = True
 
 
-def train(rank, a, h):
+def train(rank, a, h,ap):
     if h.num_gpus > 1:
         init_process_group(backend=h.dist_config['dist_backend'], init_method=h.dist_config['dist_url'],
                            world_size=h.dist_config['world_size'] * h.num_gpus, rank=rank)
@@ -89,7 +89,7 @@ def train(rank, a, h):
     train_loader = DataLoader(trainset, num_workers=h.num_workers, shuffle=False,
                               sampler=train_sampler,
                               batch_size=h.batch_size,
-                              pin_memory=True,
+                              pin_memory=False,#True,
                               drop_last=True)
 
     if rank == 0:
@@ -99,7 +99,7 @@ def train(rank, a, h):
         #                       base_mels_path=a.input_mels_dir)
         validset = MelDataset(validation_filelist, ap, h.segment_size, h.n_fft, h.num_mels,
                    h.hop_size, h.win_size, h.sampling_rate, h.fmin, h.fmax, n_cache_reuse=0,
-                   shuffle=False if h.num_gpus > 1 else True, fmax_loss=h.fmax_for_loss,
+                   shuffle=False,split=True, fmax_loss=h.fmax_for_loss,
                    fine_tuning=False,base_mels_path=a.input_mels_dir)
         validation_loader = DataLoader(validset, num_workers=1, shuffle=False,
                                        sampler=None,
@@ -124,16 +124,18 @@ def train(rank, a, h):
             if rank == 0:
                 start_b = time.time()
             x, y, _, y_mel = batch
-            print('------',x.size(),y.size(),y_mel.size())
+            #print('------',x.size(),y.size(),y_mel.size())
             x = torch.autograd.Variable(x.to(device, non_blocking=True))
             y = torch.autograd.Variable(y.to(device, non_blocking=True))
             y_mel = torch.autograd.Variable(y_mel.to(device, non_blocking=True))
             y = y.unsqueeze(1)
 
             y_g_hat = generator(x)
+            y_mel =  mel_spectrogram(y.squeeze(1), h.n_fft, h.num_mels, h.sampling_rate, h.hop_size, h.win_size,h.fmin, h.fmax_for_loss)
             y_g_hat_mel = mel_spectrogram(y_g_hat.squeeze(1), h.n_fft, h.num_mels, h.sampling_rate, h.hop_size, h.win_size,
                                           h.fmin, h.fmax_for_loss)
-            # y_g_hat_mel = ap.melspectrogram(y_g_hat.squeeze(1),h.fmax_for_loss)
+            #y_g_hat_mel = ap.melspectrogram(y_g_hat.squeeze(1).cpu(),h.fmax_for_loss)
+            #y_g_hat_mel = torch.from_numpy(y_g_hat_mel).float().to(device)
 
             optim_d.zero_grad()
 
@@ -204,11 +206,17 @@ def train(rank, a, h):
                         for j, batch in enumerate(validation_loader):
                             x, y, _, y_mel = batch
                             y_g_hat = generator(x.to(device))
+                            y = torch.autograd.Variable(y.to(device, non_blocking=True))
                             y_mel = torch.autograd.Variable(y_mel.to(device, non_blocking=True))
+                            y_mel = mel_spectrogram(y.squeeze(1), h.n_fft, h.num_mels, h.sampling_rate,h.hop_size, h.win_size,h.fmin, h.fmax_for_loss)
+                            
                             y_g_hat_mel = mel_spectrogram(y_g_hat.squeeze(1), h.n_fft, h.num_mels, h.sampling_rate,
                                                           h.hop_size, h.win_size,
                                                           h.fmin, h.fmax_for_loss)
-                            # y_g_hat_mel = ap.melspectrogram(y_g_hat.squeeze(1),h.fmax_for_loss)
+                            
+                            #y_g_hat_mel = ap.melspectrogram(y_g_hat.squeeze(1),h.fmax_for_loss)
+                            #print(y.shape,y_g_hat.shape) 
+                            #print(y_mel.shape,y_g_hat_mel.shape)
                             val_err_tot += F.l1_loss(y_mel, y_g_hat_mel).item()
 
                             if j <= 4:
@@ -248,7 +256,7 @@ def main():
     parser.add_argument('--input_mels_dir', default='ft_dataset')
     parser.add_argument('--input_training_file', default='/data2/jiangpeipei/TTS_MEL/hifi-gan/hifi-gan/dataset/training.txt')
     parser.add_argument('--input_validation_file', default='/data2/jiangpeipei/TTS_MEL/hifi-gan/hifi-gan/dataset/validation.txt')
-    parser.add_argument('--checkpoint_path', default='../cp_hifigan')
+    parser.add_argument('--checkpoint_path', default='../cp_hifigan_change_mel_multgpu')
     parser.add_argument('--config', default='')
     parser.add_argument('--training_epochs', default=3100, type=int)
     parser.add_argument('--stdout_interval', default=5, type=int)
@@ -277,9 +285,9 @@ def main():
         pass
 
     if h.num_gpus > 1:
-        mp.spawn(train, nprocs=h.num_gpus, args=(a, h,))
+        mp.spawn(train, nprocs=h.num_gpus, args=(a, h,ap))
     else:
-        train(0, a, h)
+        train(0, a, h,ap)
 
 
 if __name__ == '__main__':
