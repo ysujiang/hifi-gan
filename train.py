@@ -102,6 +102,9 @@ def train(rank, a, h):
     generator.train()
     mpd.train()
     msd.train()
+
+    best_steps =0
+    val_err_best = 100000
     for epoch in range(max(0, last_epoch), a.training_epochs):
         if rank == 0:
             start = time.time()
@@ -161,8 +164,8 @@ def train(rank, a, h):
                     with torch.no_grad():
                         mel_error = F.l1_loss(y_mel, y_g_hat_mel).item()
 
-                    print('Steps : {:d}, Gen Loss Total : {:4.3f}, Mel-Spec. Error : {:4.3f}, s/b : {:4.3f}'.
-                          format(steps, loss_gen_all, mel_error, time.time() - start_b))
+                    print('Steps : {:d}, Gen Loss Total : {:4.3f}, Mel-Spec. Error : {:4.3f}, s/b : {:4.3f} , Best_epoch : {:d}'.
+                          format(steps, loss_gen_all, mel_error, time.time() - start_b, best_steps))
 
                 # checkpointing
                 if steps % a.checkpoint_interval == 0 and steps != 0:
@@ -203,6 +206,10 @@ def train(rank, a, h):
                                     sw.add_audio('gt/y_{}'.format(j), y[0], steps, h.sampling_rate)
                                     sw.add_figure('gt/y_spec_{}'.format(j), plot_spectrogram(x[0]), steps)
 
+                                pixel_wise_diff = torch.nn.functional.l1_loss(y_mel, y_g_hat_mel, reduction='none')
+                                sw.add_figure('generated/diff_figrue_{}'.format(j),
+                                              plot_spectrogram(pixel_wise_diff.squeeze(0).cpu().numpy()), steps)
+
                                 sw.add_audio('generated/y_hat_{}'.format(j), y_g_hat[0], steps, h.sampling_rate)
                                 y_hat_spec = mel_spectrogram(y_g_hat.squeeze(1), h.n_fft, h.num_mels,
                                                              h.sampling_rate, h.hop_size, h.win_size,
@@ -211,6 +218,9 @@ def train(rank, a, h):
                                               plot_spectrogram(y_hat_spec.squeeze(0).cpu().numpy()), steps)
 
                         val_err = val_err_tot / (j+1)
+                        if val_err < val_err_best:
+                            val_err_best = val_err
+                            best_steps = steps
                         sw.add_scalar("validation/mel_spec_error", val_err, steps)
 
                     generator.train()
@@ -229,13 +239,12 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-
     parser.add_argument('--group_name', default=None)
-    parser.add_argument('--input_wavs_dir', default='/data1/jiangpeipei/TTS_MEL/hifi-gan/hifi-gan/dataset/wavs')
+    parser.add_argument('--input_wavs_dir', default='data')
     parser.add_argument('--input_mels_dir', default='ft_dataset')
-    parser.add_argument('--input_training_file', default='/data1/jiangpeipei/TTS_MEL/hifi-gan/hifi-gan/dataset/training.txt')
-    parser.add_argument('--input_validation_file', default='/data1/jiangpeipei/TTS_MEL/hifi-gan/hifi-gan/dataset/validation.txt')
-    parser.add_argument('--checkpoint_path', default='cp_hifigan')
+    parser.add_argument('--input_training_file', default='data/training.txt')
+    parser.add_argument('--input_validation_file', default='data/validation.txt')
+    parser.add_argument('--checkpoint_path', default='output')
     parser.add_argument('--config', default='')
     parser.add_argument('--training_epochs', default=3100, type=int)
     parser.add_argument('--stdout_interval', default=5, type=int)
